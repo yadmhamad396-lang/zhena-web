@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.venv/
+# Ignore duplicate/copy folders in docs
+docs/static (#*

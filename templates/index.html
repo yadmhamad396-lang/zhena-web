@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ doctor.name }} – Products</title>
+  <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="#about" class="nav-link">About</a>
+      <a href="#categories" class="nav-link">Categories</a>
+      <a href="#bag" class="nav-link nav-bag" id="nav-bag" title="Your bag">
+        <span class="bag-icon" aria-hidden="true">🛒</span>
+        <span class="bag-count" id="bag-count">0</span>
+        <span class="nav-bag-label">Bag</span>
+      </a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="about" class="page section about">
+      <h1>{{ doctor.name }}</h1>
+      <p class="title">{{ doctor.title }}</p>
+      <p class="bio">{{ doctor.bio }}</p>
+      {% if doctor.email %}
+      <p><a href="mailto:{{ doctor.email }}">{{ doctor.email }}</a></p>
+      {% endif %}
+    </section>
+
+    <section id="categories" class="page section" style="display:none;">
+      <h2>Categories</h2>
+      <p class="section-desc">Choose a category to see products.</p>
+      <div class="categories" id="categories-list"></div>
+    </section>
+
+    <section id="products" class="page section" style="display:none;">
+      <div class="products-header">
+        <a href="#categories" class="back-link">← Categories</a>
+        <h2 id="products-title">Products</h2>
+      </div>
+      <div class="products" id="products-list"></div>
+    </section>
+
+    <section id="bag" class="page section" style="display:none;">
+      <h2>Your Bag</h2>
+      <p class="section-desc">Review your items, change quantity or remove, then send the order to the doctor via WhatsApp.</p>
+      <div id="bag-empty" class="bag-empty">
+        <p>Your bag is empty.</p>
+        <p>Choose a category, then add products to your bag and send your order via WhatsApp.</p>
+        <a href="#categories" class="btn-browse">Browse categories</a>
+      </div>
+      <div id="bag-items" class="bag-items"></div>
+      <div id="bag-actions" class="bag-actions" style="display:none;">
+        <a href="#" id="send-whatsapp" class="btn-send-whatsapp" target="_blank" rel="noopener">Send order to WhatsApp</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Orders via WhatsApp. Hosted on GitHub Pages.</p>
+  </footer>
+
+  <div id="toast" class="toast" aria-live="polite" role="status">Added to bag</div>
+
+  <script>
+    (function() {
+      var CART_KEY = 'doctor_bag';
+      var doctor = {
+        name: {{ doctor.name | tojson }},
+        phoneDigits: {{ doctor.phone_digits | tojson }}
+      };
+      var categories = {{ categories_json | safe }};
+      var products = {{ products_json | safe }};
+
+      function getCart() {
+        try {
+          var raw = localStorage.getItem(CART_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch (e) { return []; }
+      }
+
+      function saveCart(items) {
+        localStorage.setItem(CART_KEY, JSON.stringify(items));
+        updateBagCount();
+        if (currentPage === 'bag') renderBag();
+      }
+
+      function updateBagCount() {
+        var items = getCart();
+        var total = items.reduce(function(s, i) { return s + (i.qty || 1); }, 0);
+        var el = document.getElementById('bag-count');
+        if (el) el.textContent = total;
+      }
+
+      function showToast(message) {
+        var el = document.getElementById('toast');
+        if (!el) return;
+        el.textContent = message || 'Added to bag';
+        el.classList.add('is-visible');
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(function() {
+          el.classList.remove('is-visible');
+        }, 2200);
+      }
+
+      function addToBag(product, qty) {
+        qty = Math.max(1, parseInt(qty, 10) || 1);
+        var items = getCart();
+        var i = items.findIndex(function(x) { return x.id === product.id; });
+        if (i >= 0) items[i].qty += qty;
+        else items.push({ id: product.id, name: product.name, price: product.price, qty: qty });
+        saveCart(items);
+        showToast('Added to bag');
+      }
+
+      function setQty(productId, qty) {
+        qty = Math.max(0, parseInt(qty, 10) || 0);
+        var items = getCart();
+        if (qty === 0) {
+          items = items.filter(function(x) { return x.id !== productId; });
+        } else {
+          var item = items.find(function(x) { return x.id === productId; });
+          if (item) item.qty = qty;
+        }
+        saveCart(items);
+      }
+
+      function removeFromBag(productId) {
+        var items = getCart().filter(function(x) { return x.id !== productId; });
+        localStorage.setItem(CART_KEY, JSON.stringify(items));
+        updateBagCount();
+        if (currentPage === 'bag') renderBag();
+      }
+
+      function buildWhatsAppMessage(items) {
+        var lines = ['Hello ' + doctor.name + ', I would like to order:'];
+        items.forEach(function(i) {
+          lines.push('• ' + i.name + ' x' + i.qty + ' — ' + i.price + ' each');
+        });
+        return lines.join('\n');
+      }
+
+      function sendToWhatsApp() {
+        var items = getCart();
+        if (items.length === 0) return;
+        var text = encodeURIComponent(buildWhatsAppMessage(items));
+        var url = 'https://wa.me/' + doctor.phoneDigits + '?text=' + text;
+        window.open(url, '_blank');
+        localStorage.removeItem(CART_KEY);
+        updateBagCount();
+        if (currentPage === 'bag') renderBag();
+      }
+
+      var currentPage = 'about';
+
+      function showPage(pageId, param) {
+        document.querySelectorAll('.page').forEach(function(el) { el.style.display = 'none'; });
+        var el = document.getElementById(pageId);
+        if (el) el.style.display = 'block';
+        currentPage = pageId;
+
+        if (pageId === 'categories') renderCategories();
+        if (pageId === 'products') renderProducts(param);
+        if (pageId === 'bag') renderBag();
+      }
+
+      function renderCategories() {
+        var container = document.getElementById('categories-list');
+        if (!container) return;
+        container.innerHTML = categories.map(function(cat) {
+          return '<a href="#products/' + cat.id + '" class="category-card">' +
+            '<h3>' + escapeHtml(cat.name) + '</h3>' +
+            '<p>' + escapeHtml(cat.description || '') + '</p>' +
+            '</a>';
+        }).join('');
+      }
+
+      function renderProducts(categoryId) {
+        var list = document.getElementById('products-list');
+        var titleEl = document.getElementById('products-title');
+        if (!list) return;
+        var cat = categories.find(function(c) { return c.id === categoryId; });
+        var name = cat ? cat.name : 'Products';
+        if (titleEl) titleEl.textContent = name;
+        var prods = products.filter(function(p) { return p.category === categoryId; });
+        list.innerHTML = prods.map(function(p) {
+          return '<div class="product-card" data-product-id="' + escapeHtml(p.id) + '">' +
+            '<h4>' + escapeHtml(p.name) + '</h4>' +
+            '<p class="description">' + escapeHtml(p.description || '') + '</p>' +
+            '<p class="price">' + escapeHtml(p.price) + '</p>' +
+            '<div class="product-actions">' +
+            '<input type="number" min="1" value="1" class="qty-input" data-product-id="' + escapeHtml(p.id) + '">' +
+            '<button type="button" class="btn-add-bag" data-product-id="' + escapeHtml(p.id) + '">Add to bag</button>' +
+            '</div>' +
+            '</div>';
+        }).join('');
+
+        list.querySelectorAll('.btn-add-bag').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var id = btn.getAttribute('data-product-id');
+            var product = products.find(function(p) { return p.id === id; });
+            if (!product) return;
+            var card = btn.closest('.product-card');
+            var input = card ? card.querySelector('.qty-input') : null;
+            var qty = input ? parseInt(input.value, 10) || 1 : 1;
+            addToBag(product, qty);
+          });
+        });
+      }
+
+      function renderBag() {
+        var items = getCart();
+        var emptyEl = document.getElementById('bag-empty');
+        var listEl = document.getElementById('bag-items');
+        var actionsEl = document.getElementById('bag-actions');
+        if (!listEl) return;
+
+        if (items.length === 0) {
+          if (emptyEl) emptyEl.style.display = 'block';
+          listEl.innerHTML = '';
+          if (actionsEl) actionsEl.style.display = 'none';
+          return;
+        }
+        if (emptyEl) emptyEl.style.display = 'none';
+        if (actionsEl) actionsEl.style.display = 'block';
+
+        listEl.innerHTML = items.map(function(item) {
+          return '<div class="bag-row" data-product-id="' + escapeHtml(item.id) + '">' +
+            '<div class="bag-row-info">' +
+            '<strong>' + escapeHtml(item.name) + '</strong>' +
+            '<span class="bag-row-price">' + escapeHtml(item.price) + ' each</span>' +
+            '</div>' +
+            '<div class="bag-row-controls">' +
+            '<label>Qty <input type="number" min="1" value="' + item.qty + '" class="bag-qty" data-product-id="' + escapeHtml(item.id) + '"></label>' +
+            '<button type="button" class="btn-remove" data-product-id="' + escapeHtml(item.id) + '" title="Remove">Remove</button>' +
+            '</div>' +
+            '</div>';
+        }).join('');
+
+        listEl.querySelectorAll('.bag-qty').forEach(function(input) {
+          input.addEventListener('change', function() {
+            var id = input.getAttribute('data-product-id');
+            setQty(id, input.value);
+          });
+        });
+        listEl.querySelectorAll('.btn-remove').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var id = btn.getAttribute('data-product-id');
+            removeFromBag(id);
+          });
+        });
+      }
+
+      function escapeHtml(s) {
+        if (s == null) return '';
+        var div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+      }
+
+      function onHashChange() {
+        var hash = (window.location.hash || '#about').slice(1);
+        if (hash === 'about' || hash === '') {
+          showPage('about');
+          return;
+        }
+        if (hash === 'categories') {
+          showPage('categories');
+          return;
+        }
+        if (hash === 'bag') {
+          showPage('bag');
+          return;
+        }
+        if (hash.indexOf('products/') === 0) {
+          var catId = hash.slice(9);
+          showPage('products', catId);
+          return;
+        }
+        showPage('about');
+      }
+
+      document.getElementById('send-whatsapp').addEventListener('click', function(e) {
+        e.preventDefault();
+        sendToWhatsApp();
+      });
+
+      window.addEventListener('hashchange', onHashChange);
+      window.addEventListener('load', function() {
+        updateBagCount();
+        onHashChange();
+      });
+    })();
+  </script>
+</body>
+</html>

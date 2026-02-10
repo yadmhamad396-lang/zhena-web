@@ -1,0 +1,19 @@
+# Product categories
+- id: cat-dry-food
+  name: Cat Dry Food
+  description: Dry food for cats
+- id: dog-dry-food
+  name: Dog Dry Food
+  description: Dry food for dogs
+- id: cat-wet-food
+  name: Cat Wet Food
+  description: Wet food for cats
+- id: dog-wet-food
+  name: Dog Wet Food
+  description: Wet food for dogs
+- id: snack-cat
+  name: Snack for Cat
+  description: Treats and snacks for cats
+- id: snack-dog
+  name: Snack for Dog
+  description: Treats and snacks for dogs
