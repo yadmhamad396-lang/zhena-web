@@ -1,0 +1,4 @@
+{"location":"index.html","message":"script start","data":{"catType":"object","prodType":"object","catIsArr":true,"prodIsArr":true,"catLen":6,"prodLen":1,"sendEl":true},"hypothesisId":"H-A","timestamp":1770849604700}
+{"location":"index.html","message":"send-whatsapp el","data":{"exists":true,"id":"send-whatsapp"},"hypothesisId":"H-C","timestamp":1770849604700}
+{"location":"index.html","message":"script start","data":{"catType":"object","prodType":"object","catIsArr":true,"prodIsArr":true,"catLen":6,"prodLen":1,"sendEl":true},"hypothesisId":"H-A","timestamp":1770849606585}
+{"location":"index.html","message":"send-whatsapp el","data":{"exists":true,"id":"send-whatsapp"},"hypothesisId":"H-C","timestamp":1770849606585}
