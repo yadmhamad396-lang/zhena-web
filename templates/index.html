@@ -9,7 +9,7 @@
 <body>
   <header>
     <nav>
-      <a href="#about" class="nav-link">About</a>
+      <a href="#about" class="nav-link">About Us</a>
       <a href="#categories" class="nav-link">Categories</a>
       <a href="#bag" class="nav-link nav-bag" id="nav-bag" title="Your bag">
         <span class="bag-icon" aria-hidden="true">🛒</span>
@@ -45,10 +45,10 @@
 
     <section id="bag" class="page section" style="display:none;">
       <h2>Your Bag</h2>
-      <p class="section-desc">Review your items, change quantity or remove, then send the order to the doctor via WhatsApp.</p>
+      <p class="section-desc">Review your items, change quantity or remove, then send your order to Meow Market via WhatsApp.</p>
       <div id="bag-empty" class="bag-empty">
         <p>Your bag is empty.</p>
-        <p>Choose a category, then add products to your bag and send your order via WhatsApp.</p>
+        <p>Choose a category, add products to your bag, and send your order to us via WhatsApp.</p>
         <a href="#categories" class="btn-browse">Browse categories</a>
       </div>
       <div id="bag-items" class="bag-items"></div>
@@ -59,20 +59,26 @@
   </main>
 
   <footer>
-    <p>Orders via WhatsApp. Hosted on GitHub Pages.</p>
+    <p>Meow Market — Orders via WhatsApp. Hosted on GitHub Pages.</p>
   </footer>
 
   <div id="toast" class="toast" aria-live="polite" role="status">Added to bag</div>
 
+  <script type="application/json" id="meow-market-data">{{ config_json | safe }}</script>
   <script>
     (function() {
-      var CART_KEY = 'doctor_bag';
-      var doctor = {
-        name: {{ doctor.name | tojson }},
-        phoneDigits: {{ doctor.phone_digits | tojson }}
-      };
-      var categories = {{ categories_json | safe }};
-      var products = {{ products_json | safe }};
+      var config = JSON.parse(document.getElementById('meow-market-data').textContent);
+      var store = config.store;
+      var categories = config.categories || [];
+      var products = config.products || [];
+      // #region agent log
+      function _log(msg, data, hypothesisId) {
+        fetch('http://127.0.0.1:7242/ingest/1de03c7b-4852-4c84-a51c-52f949e046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html',message:msg,data:data||{},hypothesisId:hypothesisId||'',timestamp:Date.now()})}).catch(function(){});
+      }
+      window.onerror=function(m,s,l,c,e){_log('onerror',{msg:m,src:s,line:l,col:c,stack:e&&e.stack},'H-E');return false;};
+      _log('script start',{catType:typeof categories,prodType:typeof products,catIsArr:Array.isArray(categories),prodIsArr:Array.isArray(products),catLen:categories?categories.length:null,prodLen:products?products.length:null,sendEl:!!document.getElementById('send-whatsapp')},'H-A');
+      // #endregion
+      var CART_KEY = 'meow_market_bag';
 
       function getCart() {
         try {
@@ -82,6 +88,9 @@
       }
 
       function saveCart(items) {
+        // #region agent log
+        _log('saveCart',{currentPage:typeof currentPage!='undefined'?currentPage:'undefined'},'H-B');
+        // #endregion
         localStorage.setItem(CART_KEY, JSON.stringify(items));
         updateBagCount();
         if (currentPage === 'bag') renderBag();
@@ -135,7 +144,7 @@
       }
 
       function buildWhatsAppMessage(items) {
-        var lines = ['Hello ' + doctor.name + ', I would like to order:'];
+        var lines = ['Hello ' + store.name + ', I would like to order:'];
         items.forEach(function(i) {
           lines.push('• ' + i.name + ' x' + i.qty + ' — ' + i.price + ' each');
         });
@@ -146,7 +155,7 @@
         var items = getCart();
         if (items.length === 0) return;
         var text = encodeURIComponent(buildWhatsAppMessage(items));
-        var url = 'https://wa.me/' + doctor.phoneDigits + '?text=' + text;
+        var url = 'https://wa.me/' + store.phoneDigits + '?text=' + text;
         window.open(url, '_blank');
         localStorage.removeItem(CART_KEY);
         updateBagCount();
@@ -254,6 +263,9 @@
       }
 
       function escapeHtml(s) {
+        // #region agent log
+        if (s != null && typeof s !== 'string' && typeof s !== 'number') _log('escapeHtml unexpected type',{type:typeof s,value:s},'H-D');
+        // #endregion
         if (s == null) return '';
         var div = document.createElement('div');
         div.textContent = s;
@@ -282,7 +294,11 @@
         showPage('about');
       }
 
-      document.getElementById('send-whatsapp').addEventListener('click', function(e) {
+      // #region agent log
+      var sendEl = document.getElementById('send-whatsapp');
+      _log('send-whatsapp el',{exists:!!sendEl,id:sendEl?sendEl.id:null},'H-C');
+      // #endregion
+      if (sendEl) sendEl.addEventListener('click', function(e) {
         e.preventDefault();
         sendToWhatsApp();
       });

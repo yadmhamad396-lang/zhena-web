@@ -38,22 +38,30 @@ def phone_digits(phone: str) -> str:
 
 
 def build():
-    doctor = load_doctor()
+    doctor = load_doctor() or {}
     categories = load_categories()
     products = load_products()
+    if categories is None:
+        categories = []
+    if products is None:
+        products = []
 
     doctor_phone = phone_digits(doctor.get("phone", ""))
     doctor["phone_digits"] = doctor_phone
 
-    # JSON for client-side (categories, products)
+    # Single JSON blob for client-side (avoids Jinja inside <script> so editor doesn't flag syntax)
+    config = {
+        "store": {"name": doctor.get("name", ""), "phoneDigits": doctor_phone},
+        "categories": categories,
+        "products": products,
+    }
     env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
     template = env.get_template("index.html")
     html = template.render(
         doctor=doctor,
         categories=categories,
         products=products,
-        categories_json=json.dumps(categories),
-        products_json=json.dumps(products),
+        config_json=json.dumps(config),
     )
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

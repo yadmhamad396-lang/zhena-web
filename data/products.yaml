@@ -1,4 +1,11 @@
-# Products - category id must match one in categories.yaml
+# ============================================================
+# MEOW MARKET — PRODUCT DATA (add your products here)
+# ============================================================
+# Each product needs: id, name, category, price, description.
+# "category" must match an "id" from data/categories.yaml.
+# Add more items below using the same format (copy a block and edit).
+# After editing, run:  python build.py   to update the site.
+# ============================================================
 - id: cat-dry-1
   name: Premium Cat Kibble 2kg
   category: cat-dry-food

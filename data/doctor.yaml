@@ -1,7 +1,7 @@
-# Doctor / person info - edit this for your site
-name: "Dr. Zhena"
-title: "Veternary Medical Professional"
-bio: "Short bio about the doctor. You can add education, experience, and what you offer."
-phone: "+9647701652061"   
+# Store / contact info for Meow Market (used in About and WhatsApp)
+name: "Meow Market"
+title: "Your go-to place for pet supplies and more"
+bio: "Meow Market is a friendly shop where you can find everything for your pets—food, treats, and essentials. Browse our categories, add what you need to your bag, and send your order to us via WhatsApp. We're here to help!"
+phone: "+9647701652061"
 email: "zhinawshyar@gmail.com"
 image: "images/zhena.jpg"
